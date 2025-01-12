@@ -2,7 +2,7 @@
 $readme = file(ROOT_PATH . '/README.md');
 $subheader = str_replace('#', '', $readme[0]);
 
-if (isset($_SESSION['installer_language']) && is_file('custom/languages/' . $_SESSION['installer_language'] . '.json')) {
+if (isset($_SESSION['installer_language']) && is_file('modules/Core/language/' . $_SESSION['installer_language'] . '.json')) {
     $installer_language = $_SESSION['installer_language'];
 } else {
     $installer_language = 'en_UK';
@@ -25,7 +25,7 @@ foreach (Language::LANGUAGES as $short_code => $meta) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $language->get('installer', 'install'); ?> &bull; NamelessMC</title>
-    <link rel="stylesheet" href="custom/templates/DefaultRevamp/css/fomantic.min.css">
+    <link rel="stylesheet" href="core/assets/vendor/fomantic-ui/dist/semantic.min.css">
 
     <style>
 

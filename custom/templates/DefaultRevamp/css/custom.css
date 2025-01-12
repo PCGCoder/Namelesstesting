@@ -9,6 +9,13 @@ body {
 
 body.pushable>.pusher {
     background: #f3f6fa;
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+#wrapper {
+    margin-bottom: 1rem;
 }
 
 /*
@@ -264,19 +271,77 @@ body.pushable>.pusher {
     }
 }
 
-#topic-post #post-content #reactions {
+.ui.comments {
+    max-width: none;
+}
+
+.ui.grid.segment.leaderboard_table {
+    margin-top: 0;
+}
+
+.leaderboard_table .ui.list {
+    margin-left: -10px;
+}
+
+.leaderboard_table .ui.list li a {
+    display: block;
+    height: 100%;
+    width: 100%;
+}
+
+.leaderboard_table .middle.aligned.content {
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;;
+    white-space: nowrap;
+}
+
+.leaderboard_table ol li:before {
+    display: none;
+}
+
+#reactions {
     margin-top: 1rem;
     padding: .7em 1.2em .7em 1.2em;
     min-height: 32.5px;
-    font-size: .85em;
+    font-size: 12px;
 }
 
-#topic-post #post-content #reactions form {
-    display: inline-block;
+#topic-post #post-content {
+    display: flex;
+    flex-direction: column;
 }
 
-#topic-post #post-content #reactions .icon {
-    margin-right: .3em;
+#topic-post #post-content {
+    padding: .7em 1.2em .7em 1.2em;
+    min-height: 32.5px;
+}
+
+#post-content #reactions {
+    margin-top: auto;
+}
+
+.reaction-button, .reaction-button-selected {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.reaction-button {
+    opacity: 50%;
+}
+
+.reaction-button:hover, .reaction-button-selected {
+    opacity: 100%;
+    cursor: pointer;
+}
+
+#modal-reactions .ui.menu {
+    overflow-x: auto;
+}
+
+/** Reaction modal tab buttons display non-native emojis as 2.5em wide by default */
+.ui.menu .item > img:not(.ui) {
+    width: 1em;
 }
 
 #topic-post #post-meta {
@@ -293,6 +358,12 @@ body.pushable>.pusher {
 
 .ui.form .inline.fields.labels .field {
     padding-bottom: 1em;
+}
+
+.blockquote {
+    border-left: 2px solid #ccc;
+    margin: 1.5em 10px;
+    padding: 0.5em 10px;
 }
 
 /*
@@ -363,6 +434,15 @@ body.pushable>.pusher {
 #profile-header .actions {
     position: absolute;
     right: 1rem;
+}
+
+#profile a.ui.circular.image.avatar img {
+    max-height: 35px;
+}
+
+/* Fix avatar images in labels being a few px from touching the top */
+.ui.image.label img {
+    vertical-align: top !important;
 }
 
 /*
@@ -441,7 +521,8 @@ body.pushable>.pusher {
    */
 
 .ui.footer.segment {
-    margin: 1rem 0 -.5rem 0;
+    position: relative;
+    margin: auto 0 -.5rem 0;
     padding: 3em 0;
 }
 
@@ -638,7 +719,6 @@ body.pushable>.pusher {
     flex: 0 0 auto;
     width: auto;
     line-height: 1;
-    vertical-align: middle;
     font-size: 3em;
     opacity: .8;
 }
@@ -943,13 +1023,15 @@ select {
     height: auto;
 }
 
-.ui.checkbox .box:before,
-.ui.checkbox label:before {
+#post-content .forum_post {
+    margin-bottom: 1rem;
+}
+
+.ui.checkbox .box:before {
     margin-top: 4px;
 }
 
-.ui.checkbox input:checked~.box:after,
-.ui.checkbox input:checked~label:after {
+.ui.checkbox input:checked~.box:after {
     margin-top: 4px;
 }
 
@@ -970,12 +1052,16 @@ select {
     }
 }
 
+#darkmode {
+    display: inline-block;
+}
+
 .darkmode-toggle {
     opacity: 0;
     position: absolute;
 }
 
-.darkmode-toggle:checked + .darkmode-toggle-label .darkmode-ball {
+.darkmode-toggle:checked+.darkmode-toggle-label .darkmode-ball {
     transform: translateX(24px);
 }
 
@@ -989,6 +1075,7 @@ select {
     padding: 5px;
     height: 26px;
     width: 50px;
+    cursor: pointer;
 }
 
 .darkmode-ball {
@@ -1007,7 +1094,36 @@ select {
 }
 
 .fa-sun {
-    color:#f39c00;
+    color: #f39c00;
+}
+
+/*
+ Member list search images
+ */
+.ui.search>.results .result .image {
+    border-radius: 0;
+}
+
+/*
+ Make new members grid avatars fit nicer
+ */
+#new-members-grid {
+    padding: 0.5em;
+}
+
+#new-members-grid .column {
+    padding: 0.5em;
+}
+
+/*
+ *  [ EMOJI SIZING ]
+ */
+
+.joypixels,
+.twemoji {
+    height: 1em;
+    width: 1em;
+    vertical-align: middle;
 }
 
 /*
@@ -1112,11 +1228,22 @@ body.dark .ui.form .field .ui.dropdown .menu .item {
 
 body.dark .ui.card,
 body.dark .ui.segment,
+body.dark .ui.segment.attached:not(.basic),
 body.dark .ui.vertical.menu {
     background-color: #303030;
     border: 1px solid rgba(0, 0, 0, 0.125);
     -webkit-box-shadow: none;
     box-shadow: none;
+}
+
+body.dark .ui.vertical.menu .active.item {
+    background-color: #464646;
+}
+
+body.dark .ui.vertical.pointing.menu .active.item:after {
+    background-color: #464646;
+    border-top: 1px solid #464646;
+    border-right: 1px solid #464646;
 }
 
 body.dark .ui.segment#profile-header {
@@ -1155,6 +1282,11 @@ body.dark .ui.selection.dropdown .menu>.message,
 body.dark .ui.attached.tabular.menu .item.active,
 body.dark .ui.threaded.comments .comment .text {
     color: #fff;
+}
+
+body.dark .ui.segment .forum_post a,
+body.dark .ui.comments .comment .forum_post a {
+    color: #62b6f7;
 }
 
 body.dark .ui.card .meta,
@@ -1250,6 +1382,7 @@ body.dark .ui.form input[type=url] {
     color: #fff;
 }
 
+body.dark .ui.mini.message,
 body.dark .ui.mini.info.message {
     background-color: #282828;
     box-shadow: 0 0 0 1px #282828 inset, 0 0 0 0 transparent;
@@ -1306,7 +1439,12 @@ body.dark .ui.table tbody tr td.selectable:hover {
     }
 }
 
-body.dark .forum_post {
+body.dark .forum_post,
+body.dark .ui.comments .forum_post.text {
+    color: #fff;
+}
+
+body.dark .ui.comments .comment .author {
     color: #fff;
 }
 
@@ -1405,10 +1543,49 @@ body.dark .cc-window.cc-floating .cc-highlight .cc-btn.cc-allow {
     border-color: transparent;
 }
 
+body.dark #reactions.ui.mini.message span {
+    color: #fff;
+}
+
+body.dark #modal-reactions .ui.menu {
+    background-color: #282828;
+}
+
+body.dark #modal-reactions .ui.menu .item {
+    color: #fff;
+}
+
+body.dark #modal-reactions .ui.menu .item.active {
+    background-color: #222;
+}
+
+body.dark #modal-reactions .ui.large.selection.divided.list.middle.aligned .item .content {
+    color: #fff;
+}
+
+body.dark ::-webkit-scrollbar-corner {
+    background-color: transparent;
+}
+
 /*
-   * Colours
-   */
+ * Colours
+ */
 
 body.dark .white {
     color: #fff;
+}
+
+/*
+ * Accessiblity
+ */
+
+.screenreader-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    border: 0;
 }

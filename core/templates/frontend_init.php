@@ -2,7 +2,7 @@
 /*
  *  Made by Samerton
  *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.0-pr8
+ *  NamelessMC version 2.2.0
  *
  *  License: MIT
  *
@@ -25,17 +25,15 @@ if (defined('PAGE') && PAGE != 'login' && PAGE != 'register' && PAGE != 404 && P
         if (defined('CONFIG_PATH')) {
             $_SESSION['last_page'] = substr($_SESSION['last_page'], strlen(CONFIG_PATH));
         }
-
     } else {
         $_SESSION['last_page'] = URL::build($_GET['route'] ?? '/');
     }
-
 }
 
 // Check if any integrations is required before user can continue
-if ($user->isLoggedIn() && defined('PAGE') && PAGE != 'cc_connections') {
+if ($user->isLoggedIn() && defined('PAGE') && PAGE != 'cc_connections' && PAGE != 'oauth') {
     foreach (Integrations::getInstance()->getEnabledIntegrations() as $integration) {
-        if ($integration->data()->required) {
+        if ($integration->data()->required && $integration->allowLinking()) {
             $integrationUser = $user->getIntegration($integration->getName());
             if ($integrationUser === null || !$integrationUser->isVerified()) {
                 Session::flash('connections_error', $language->get('user', 'integration_required_to_continue'));
@@ -47,18 +45,20 @@ if ($user->isLoggedIn() && defined('PAGE') && PAGE != 'cc_connections') {
 
 if (defined('PAGE') && PAGE != 404) {
     // Auto unset signin tfa variables if set
-    if (!str_contains($_GET['route'], '/queries/') && (isset($_SESSION['remember']) || isset($_SESSION['username']) || isset($_SESSION['email']) || isset($_SESSION['password'])) && (!isset($_POST['tfa_code']) && !isset($_SESSION['mcassoc']))) {
+    if (!str_contains($_GET['route'], '/queries/') && (isset($_SESSION['remember']) || isset($_SESSION['username']) || isset($_SESSION['email']) || isset($_SESSION['password'])) && !isset($_POST['tfa_code'])) {
         unset($_SESSION['remember'], $_SESSION['username'], $_SESSION['email'], $_SESSION['password']);
     }
 }
 
-$template_path = ROOT_PATH . '/custom/templates/' . TEMPLATE;
-$smarty->setTemplateDir($template_path);
 $smarty->setCompileDir(ROOT_PATH . '/cache/templates_c');
 
 if (file_exists(ROOT_PATH . '/custom/templates/' . TEMPLATE . '/template.php')) {
+    $smarty->setTemplateDir(ROOT_PATH . '/custom/templates/' . TEMPLATE);
+
     require(ROOT_PATH . '/custom/templates/' . TEMPLATE . '/template.php');
 } else {
+    $smarty->setTemplateDir(ROOT_PATH . '/custom/templates/DefaultRevamp');
+
     require(ROOT_PATH . '/custom/templates/DefaultRevamp/template.php');
 }
 
@@ -73,7 +73,7 @@ if ($user->isLoggedIn()) {
                     'GLOBAL_WARNING_TITLE' => $language->get('user', 'you_have_received_a_warning'),
                     'GLOBAL_WARNING_REASON' => Output::getClean($warning->reason),
                     'GLOBAL_WARNING_ACKNOWLEDGE' => $language->get('user', 'acknowledge'),
-                    'GLOBAL_WARNING_ACKNOWLEDGE_LINK' => URL::build('/user/acknowledge/' . urlencode($warning->id))
+                    'GLOBAL_WARNING_ACKNOWLEDGE_LINK' => URL::build('/user/acknowledge/' . urlencode($warning->id)),
                 ]);
                 break;
             }
@@ -104,17 +104,28 @@ if (isset($_GET['route']) && $_GET['route'] != '/') {
 }
 
 if (!defined('PAGE_DESCRIPTION')) {
-    $page_metadata = DB::getInstance()->get('page_descriptions', ['page', $route])->results();
-    if (count($page_metadata)) {
+    $page_metadata = DB::getInstance()->get('page_descriptions', ['page', $route]);
+    if ($page_metadata->count()) {
+        $page_metadata = $page_metadata->first();
         $smarty->assign([
-            'PAGE_DESCRIPTION' => str_replace('{site}', Output::getClean(SITE_NAME), $page_metadata[0]->description),
-            'PAGE_KEYWORDS' => $page_metadata[0]->tags
+            'PAGE_DESCRIPTION' => str_replace('{site}', Output::getClean(SITE_NAME), addslashes(strip_tags($page_metadata->description))),
+            'PAGE_KEYWORDS' => addslashes(strip_tags($page_metadata->tags)),
+        ]);
+
+        $og_image = $page_metadata->image;
+        if ($og_image) {
+            $smarty->assign('OG_IMAGE', rtrim(URL::getSelfURL(), '/') . $og_image);
+        }
+    } else {
+        $smarty->assign([
+            'PAGE_DESCRIPTION' => str_replace('{site}', Output::getClean(SITE_NAME), addslashes(strip_tags(Settings::get('default_meta_description', '')))),
+            'PAGE_KEYWORDS' => addslashes(strip_tags(Settings::get('default_meta_keywords', ''))),
         ]);
     }
 } else {
     $smarty->assign([
-        'PAGE_DESCRIPTION' => str_replace('{site}', Output::getClean(SITE_NAME), PAGE_DESCRIPTION),
-        'PAGE_KEYWORDS' => (defined('PAGE_KEYWORDS') ? PAGE_KEYWORDS : '')
+        'PAGE_DESCRIPTION' => str_replace('{site}', Output::getClean(SITE_NAME), addslashes(strip_tags(PAGE_DESCRIPTION))),
+        'PAGE_KEYWORDS' => (defined('PAGE_KEYWORDS') ? addslashes(strip_tags(PAGE_KEYWORDS)) : ''),
     ]);
 }
 
@@ -140,7 +151,7 @@ if (!empty($favicon_image)) {
     $smarty->assign('FAVICON', Output::getClean($favicon_image));
 }
 
-$analytics_id = Util::getSetting('ga_script');
+$analytics_id = Settings::get('ga_script');
 if ($analytics_id) {
     $smarty->assign('ANALYTICS_ID', Output::getClean($analytics_id));
 }
@@ -148,10 +159,9 @@ if ($analytics_id) {
 $smarty->assign([
     'FOOTER_LINKS_TITLE' => $language->get('general', 'links'),
     'FOOTER_SOCIAL_TITLE' => $language->get('general', 'social'),
-    'TOGGLE_DARK_MODE_TEXT' => $language->get('general', 'toggle_dark_mode'),
     'AUTO_LANGUAGE_TEXT' => $language->get('general', 'auto_language'),
     'ENABLED' => $language->get('user', 'enabled'),
     'DISABLED' => $language->get('user', 'disabled'),
     'DARK_LIGHT_MODE_ACTION' => URL::build('/queries/dark_light_mode'),
-    'DARK_LIGHT_MODE_TOKEN' => $user->isLoggedIn() ? Token::get() : null
+    'DARK_LIGHT_MODE_TOKEN' => $user->isLoggedIn() ? Token::get() : null,
 ]);

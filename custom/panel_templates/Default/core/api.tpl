@@ -51,6 +51,20 @@
                             <br />
                             <form action="" method="post">
                                 <div class="form-group">
+                                    <label for="InputAPIURL">{$API_URL}</label>
+                                    <div class="input-group">
+                                        <input type="text" name="api_url" id="InputAPIURL" class="form-control" readonly value="{if $API_ENABLED}{$API_URL_VALUE}{else}{$ENABLE_API_FOR_URL}{/if}">
+                                        {if $API_ENABLED}
+                                            <span class="input-group-append">
+                                                <a onclick="copyURL();" class="btn btn-info text-white" id="copy-url-button">
+                                                    {$COPY}
+                                                </a>
+                                            </span>
+                                        {/if}
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
                                     <label for="InputAPIKey">{$API_KEY}</label>
                                     <div class="input-group">
                                         <input type="text" name="api_key" id="InputAPIKey" class="form-control" readonly
@@ -62,18 +76,6 @@
                                     </div>
                                 </div>
 
-                                <div class="form-group">
-                                    <label for="InputAPIURL">{$API_URL}</label>
-                                    <div class="input-group">
-                                        <input type="text" name="api_url" id="InputAPIURL" class="form-control" readonly
-                                            value="{if $API_ENABLED}{$API_URL_VALUE}{else}{$ENABLE_API_FOR_URL}{/if}">
-                                        {if $API_ENABLED}
-                                        <span class="input-group-append"><a onclick="copyURL();"
-                                                class="btn btn-info text-white">{$COPY}</a></span>
-                                        {/if}
-                                    </div>
-                                </div>
-
                                 <div class="form-group custom-control custom-switch">
                                     <input type="hidden" name="enable_api" value="0">
                                     <input type="checkbox" class="custom-control-input" id="enable_api"
@@ -81,15 +83,6 @@
                                     <label class="custom-control-label" for="enable_api">{$ENABLE_API}</label>
                                 </div>
 
-                                <div class="form-group custom-control custom-switch">
-                                    <input name="username_sync" id="username_sync" type="checkbox"
-                                        class="custom-control-input" {if $USERNAME_SYNC_VALUE eq 1} checked{/if} />
-                                    <label class="custom-control-label" for="username_sync">{$USERNAME_SYNC}</label>
-                                    <span class="badge badge-info">
-                                        <i class="fas fa-question-circle" data-container="body" data-toggle="popover"
-                                            data-placement="top" title="{$INFO}"
-                                            data-content="{$USERNAME_SYNC_INFO}"></i></span>
-                                </div>
                                 <div class="form-group">
                                     <input type="hidden" name="token" value="{$TOKEN}">
                                     <input type="submit" class="btn btn-primary" value="{$SUBMIT}">
@@ -146,25 +139,24 @@
 
         function regenKey() {
             const regen = $.post("{$API_KEY_REGEN_URL}", { action: 'regen', token: "{$TOKEN}" });
-            regen.done(function () { window.location.reload(); })
+            regen.done(() => window.location.reload());
         }
 
         function copyURL() {
-            let url = document.getElementById("InputAPIURL");
-            url.select();
-            document.execCommand("copy");
+            const url = document.getElementById("InputAPIURL");
 
-            // Toast
-            $('body').toast({
-                showIcon: 'fa-solid fa-check move-right',
-                message: '{$COPIED}',
-                class: 'success',
-                progressUp: true,
-                displayTime: 6000,
-                showProgress: 'bottom',
-                pauseOnHover: false,
-                position: 'bottom left',
-            });
+            if (window.isSecureContext) {
+                navigator.clipboard.writeText(url.value);
+            } else {
+                url.select();
+                document.execCommand("copy");
+                url.setSelectionRange(0, 0);
+                url.blur();
+            }
+
+            const copyUrlButton = document.getElementById('copy-url-button');
+            copyUrlButton.innerText = '{$COPIED}';
+            copyUrlButton.classList.add('disabled');
         }
     </script>
 

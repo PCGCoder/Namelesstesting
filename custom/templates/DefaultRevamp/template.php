@@ -2,15 +2,15 @@
 /*
  *  Made by Samerton | Revamped by Xemah
  *    https://github.com/NamelessMC/Nameless/
- *    NamelessMC version 2.0.0
+ *    NamelessMC version 2.1.2
  *
  *    License: MIT
  *
  *    DefaultRevamp Template
  */
 
-class DefaultRevamp_Template extends TemplateBase {
-
+class DefaultRevamp_Template extends TemplateBase
+{
     private array $_template;
 
     /** @var Language */
@@ -22,11 +22,12 @@ class DefaultRevamp_Template extends TemplateBase {
     /** @var Pages */
     private Pages $_pages;
 
-    public function __construct($cache, $smarty, $language, $user, $pages) {
+    public function __construct($cache, $smarty, $language, $user, $pages)
+    {
         $template = [
             'name' => 'DefaultRevamp',
-            'version' => '2.0.2',
-            'nl_version' => '2.0.2',
+            'version' => '2.1.3',
+            'nl_version' => '2.1.3',
             'author' => '<a href="https://xemah.com/" target="_blank">Xemah</a>',
         ];
 
@@ -40,14 +41,7 @@ class DefaultRevamp_Template extends TemplateBase {
             AssetTree::FONT_AWESOME,
             AssetTree::JQUERY,
             AssetTree::JQUERY_COOKIE,
-        ]);
-
-        $this->addCSSFiles([
-            $template['path'] . 'css/fomantic.min.css' => [],
-        ]);
-
-        $this->addJSFiles([
-            $template['path'] . 'js/fomantic.min.js' => [],
+            AssetTree::FOMANTIC_UI,
         ]);
 
         $smarty->assign('TEMPLATE', $template);
@@ -73,7 +67,7 @@ class DefaultRevamp_Template extends TemplateBase {
 
         $smarty->assign([
             'DEFAULT_REVAMP_DARK_MODE' => $smartyDarkMode,
-            'DEFAULT_REVAMP_NAVBAR_EXTRA_CLASSES' => $smartyNavbarColour
+            'DEFAULT_REVAMP_NAVBAR_EXTRA_CLASSES' => $smartyNavbarColour,
         ]);
 
         $this->_template = $template;
@@ -82,12 +76,13 @@ class DefaultRevamp_Template extends TemplateBase {
         $this->_pages = $pages;
     }
 
-    public function onPageLoad() {
+    public function onPageLoad()
+    {
         $page_load = microtime(true) - PAGE_START_TIME;
         define('PAGE_LOAD_TIME', $this->_language->get('general', 'page_loaded_in', ['time' => round($page_load, 3)]));
 
         $this->addCSSFiles([
-            $this->_template['path'] . 'css/custom.css?v=200' => []
+            $this->_template['path'] . 'css/custom.css?v=211' => [],
         ]);
 
         $route = (isset($_GET['route']) ? rtrim($_GET['route'], '/') : '/');
@@ -95,7 +90,7 @@ class DefaultRevamp_Template extends TemplateBase {
         $JSVariables = [
             'siteName' => Output::getClean(SITE_NAME),
             'siteURL' => URL::build('/'),
-            'fullSiteUrl' => URL::getSelfURL() . ltrim(URL::build('/'), '/'),
+            'fullSiteURL' => URL::getSelfURL() . ltrim(URL::build('/'), '/'),
             'page' => PAGE,
             'avatarSource' => AvatarSource::getUrlToFormat(),
             'copied' => $this->_language->get('general', 'copied'),
@@ -116,12 +111,18 @@ class DefaultRevamp_Template extends TemplateBase {
             'debugging' => (defined('DEBUGGING') && DEBUGGING == 1) ? '1' : '0',
             'loggedIn' => $this->_user->isLoggedIn() ? '1' : '0',
             'cookie' => defined('COOKIE_NOTICE') ? '1' : '0',
-            'loadingTime' => Util::getSetting('page_loading') === '1' ? PAGE_LOAD_TIME : '',
+            'loadingTime' => Settings::get('page_loading') === '1' ? PAGE_LOAD_TIME : '',
             'route' => $route,
             'csrfToken' => Token::get(),
         ];
 
-        if (strpos($route, '/forum/topic/') !== false || PAGE == 'profile') {
+        // Logo
+        $cache = new Cache(['name' => 'nameless', 'extension' => '.cache', 'path' => ROOT_PATH . '/cache/']);
+        $cache->setCache('backgroundcache');
+        $logo_image = $cache->retrieve('logo_image');
+        $JSVariables['logoImage'] = !empty($logo_image) ? $logo_image : null;
+
+        if (str_contains($route, '/forum/topic/') || PAGE === 'profile') {
             $this->assets()->include([
                 AssetTree::JQUERY_UI,
             ]);
@@ -130,17 +131,16 @@ class DefaultRevamp_Template extends TemplateBase {
         $JSVars = '';
         $i = 0;
         foreach ($JSVariables as $var => $value) {
-            $JSVars .= ($i == 0 ? 'var ' : ', ') . $var . ' = "' . $value . '"';
+            $JSVars .= ($i == 0 ? 'const ' : ', ') . $var . ' = ' . json_encode($value);
             $i++;
         }
 
         $this->addJSScript($JSVars);
 
         $this->addJSFiles([
-            $this->_template['path'] . 'js/core/core.js?v=202' => [],
+            $this->_template['path'] . 'js/core/core.js?v=203' => [],
             $this->_template['path'] . 'js/core/user.js' => [],
-            $this->_template['path'] . 'js/core/pages.js?v=202' => [],
-            $this->_template['path'] . 'js/scripts.js' => [],
+            $this->_template['path'] . 'js/core/pages.js?v=203' => [],
         ]);
 
         foreach ($this->_pages->getAjaxScripts() as $script) {

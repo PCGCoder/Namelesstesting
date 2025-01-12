@@ -10,8 +10,8 @@
  * @version 2.0.0-pr13
  * @license MIT
  */
-class AssetTree {
-
+class AssetTree
+{
     /**
      * @var string Font Awesome v6.1 (CSS)
      */
@@ -57,10 +57,6 @@ class AssetTree {
      */
     public const JQUERY_COOKIE = 'JQUERY_COOKIE';
     /**
-     * @var string MCAssoc-Client (JS
-     */
-    public const MCASSOC_CLIENT = 'MCASSOC_CLIENT';
-    /**
      * @var string Moment v2.29 (JS)
      */
     public const MOMENT = 'MOMENT';
@@ -84,15 +80,19 @@ class AssetTree {
      * @var string TinyMCE Spoiler plugin. Used individually when posts will be shown but not created (home page for example)
      */
     public const TINYMCE_SPOILER = 'TINYMCE_SPOILER';
+    /**
+     * @var string Fomantic-UI bundle v2.8 (CSS + JS)
+     */
+    public const FOMANTIC_UI = 'FOMANTIC_UI';
 
     /**
      * @var mixed Tree of all available assets, with their applicable CSS/JS files.
-     * In the case an asset depends on other assets within the tree, they are defined as "depends".
+     *            In the case an asset depends on other assets within the tree, they are defined as "depends".
      */
     protected const ASSET_TREE = [
         self::FONT_AWESOME => [
             'css' => [
-                'vendor/@fortawesome/fontawesome-free/css/all.min.css'
+                'vendor/@fortawesome/fontawesome-free/css/all.min.css',
             ],
         ],
         self::BOOTSTRAP => [
@@ -100,11 +100,11 @@ class AssetTree {
                 'vendor/bootstrap/dist/css/bootstrap.min.css',
             ],
             'js' => [
-                'vendor/bootstrap/dist/js/bootstrap.bundle.js',
+                'vendor/bootstrap/dist/js/bootstrap.bundle.min.js',
             ],
             'after' => [
                 self::JQUERY_UI,
-            ]
+            ],
         ],
         self::BOOTSTRAP_COLORPICKER => [
             'css' => [
@@ -189,11 +189,6 @@ class AssetTree {
                 self::JQUERY,
             ],
         ],
-        self::MCASSOC_CLIENT => [
-            'js' => [
-                'js/mcassoc_client.js',
-            ],
-        ],
         self::MOMENT => [
             'js' => [
                 'vendor/moment/min/moment.min.js',
@@ -245,6 +240,17 @@ class AssetTree {
                 'plugins/tinymce_spoiler/js/spoiler.js',
             ],
             'depends' => [
+                self::JQUERY,
+            ],
+        ],
+        self::FOMANTIC_UI => [
+            'css' => [
+                'vendor/fomantic-ui/dist/semantic.min.css',
+            ],
+            'js' => [
+                'vendor/fomantic-ui/dist/semantic.min.js',
+            ],
+            'after' => [
                 self::JQUERY,
             ],
         ],

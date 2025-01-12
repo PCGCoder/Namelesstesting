@@ -164,7 +164,7 @@ foreach (NamelessOAuth::getInstance()->getProviders() as $provider_name => $data
     ];
 }
 
-$namelessmc_version = Util::getSetting('nameless_version');
+$namelessmc_version = Settings::get('nameless_version');
 
 $uuid = DB::getInstance()->query('SELECT identifier FROM nl2_users_integrations INNER JOIN nl2_integrations on integration_id=nl2_integrations.id WHERE name = \'Minecraft\' AND user_id = ?;', [$user->data()->id]);
 if ($uuid->count()) {
@@ -179,21 +179,42 @@ foreach (['fatal', 'warning', 'notice', 'other', 'custom'] as $type) {
     $logs[$type] = file_exists($file_path) ? Util::readFileEnd($file_path, $max_bytes = 10_000) : '';
 }
 
+$user_data = [];
+if ($user->isLoggedIn()) {
+    $user_integrations = [];
+    foreach ($user->getIntegrations() as $integrationUser) {
+        $user_integrations[$integrationUser->getIntegration()->getName()] = [
+            'username' => $integrationUser->data()->username,
+            'identifier' => $integrationUser->data()->identifier,
+            'verified' => $integrationUser->data()->verified
+        ];
+    }
+
+    $user_data = [
+        'id' => (int) $user->data()->id,
+        'username' => $user->data()->username,
+        'nickname' => $user->getDisplayname(),
+        'groups' => array_values($user->getAllGroupIds()),
+        'integrations' => $user_integrations
+    ];
+}
+
 $data = [
     'generated_at' => time(),
     'generated_by_name' => $user->data()->username,
     'generated_by_uuid' => $uuid,
+    'user' => $user_data,
     'namelessmc' => [
         'version' => $namelessmc_version,
-        'update_available' => Util::getSetting('version_update') === 'urgent' || Util::getSetting('version_update') === 'true',
-        'update_checked' => (int) Util::getSetting('version_checked'),
+        'update_available' => Settings::get('version_update') === 'urgent' || Settings::get('version_update') === 'true',
+        'update_checked' => (int) Settings::get('version_checked'),
         'settings' => [
-            'phpmailer' => Util::getSetting('phpmailer') === '1',
-            'api_enabled' => Util::getSetting('use_api') === '1',
-            'email_verification' => Util::getSetting('email_verification') === '1',
-            'login_method' => Util::getSetting('login_method'),
-            'captcha_type' => Util::getSetting('recaptcha_type'),
-            'captcha_login' => Util::getSetting('recaptcha_login') === 'false' ? false : true, // dont ask
+            'phpmailer' => Settings::get('phpmailer') === '1',
+            'api_enabled' => Settings::get('use_api') === '1',
+            'email_verification' => Settings::get('email_verification') === '1',
+            'login_method' => Settings::get('login_method'),
+            'captcha_type' => Settings::get('recaptcha_type'),
+            'captcha_login' => Settings::get('recaptcha_login') === 'false' ? false : true, // dont ask
             'group_sync' => $group_sync,
             'webhooks' => [
                 'actions' => [
