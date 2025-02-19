@@ -30,76 +30,64 @@ if (Input::exists()) {
         // Process input
         if (isset($_POST['enable_registration'])) {
             // Either enable or disable registration
-            DB::getInstance()->update('settings', ['name', 'registration_enabled'], [
-                'value' => Input::get('enable_registration')
-            ]);
+            Settings::set('registration_enabled', Input::get('enable_registration'));
         } else {
             // Registration settings
 
-            if (Input::get('action') == 'oauth') {
+            // Email verification
+            Settings::set('email_verification', (isset($_POST['verification']) && $_POST['verification'] == 'on') ? '1' : '0');
 
-                foreach (array_keys(NamelessOAuth::getInstance()->getProviders()) as $provider_name) {
-                    $client_id = Input::get("client-id-{$provider_name}");
-                    $client_secret = Input::get("client-secret-{$provider_name}");
-                    if ($client_id && $client_secret) {
-                        NamelessOAuth::getInstance()->setEnabled($provider_name, Input::get("enable-{$provider_name}") == 'on' ? 1 : 0);
-                    } else {
-                        NamelessOAuth::getInstance()->setEnabled($provider_name, 0);
-                    }
+            // Registration disabled message
+            Settings::set('registration_disabled_message', (isset($_POST['message']) && !empty($_POST['message'])) ? $_POST['message'] : 'Website registration is disabled.');
 
-                    NamelessOAuth::getInstance()->setCredentials($provider_name, $client_id, $client_secret);
+            // reCAPTCHA type
+            Settings::set('recaptcha_type', Input::get('captcha_type'));
+
+            // Validate captcha key and secret key
+            if (!empty(Input::get('recaptcha_key')) || !empty(Input::get('recaptcha_secret')) || Input::get('enable_recaptcha') == 1 || Input::get('enable_recaptcha_login') == 1) {
+                CaptchaBase::setActiveProvider(Input::get('captcha_type'));
+
+                $provider = CaptchaBase::getActiveProvider();
+                if ($provider->validateSecret(Input::get('recaptcha_secret')) == false || $provider->validateKey(Input::get('recaptcha')) == false) {
+                    $captcha_warning = $language->get('admin', 'invalid_recaptcha_settings', [
+                        'recaptchaProvider' => Text::bold(Input::get('captcha_type'))
+                    ]);
                 }
 
-            } else {
-                // Email verification
-                Util::setSetting('email_verification', (isset($_POST['verification']) && $_POST['verification'] == 'on') ? '1' : '0');
+                Settings::set('recaptcha_key', Input::get('recaptcha'));
+                Settings::set('recaptcha_secret', Input::get('recaptcha_secret'));
 
-                // Registration disabled message
-                Util::setSetting('registration_disabled_message', (isset($_POST['message']) && !empty($_POST['message'])) ? $_POST['message'] : 'Website registration is disabled.');
+            } else if (empty(Input::get('recaptcha_key')) && empty(Input::get('recaptcha_secret'))) {
+                Settings::set('recaptcha_key', '');
+                Settings::set('recaptcha_secret', '');
+            }
 
-                // reCAPTCHA type
-                Util::setSetting('recaptcha_type', Input::get('captcha_type'));
+            Settings::set('recaptcha', (isset($_POST['enable_recaptcha']) && $_POST['enable_recaptcha'] == '1') ? '1' : '0');
+            Settings::set('recaptcha_login', (isset($_POST['enable_recaptcha_login']) && $_POST['enable_recaptcha_login'] == '1') ? '1' : '0');
 
-                // Validate captcha key and secret key
-                if (!empty(Input::get('recaptcha_key')) || !empty(Input::get('recaptcha_secret')) || Input::get('enable_recaptcha') == 1 || Input::get('enable_recaptcha_login') == 1) {
-                    CaptchaBase::setActiveProvider(Input::get('captcha_type'));
-
-                    $provider = CaptchaBase::getActiveProvider();
-                    if ($provider->validateSecret(Input::get('recaptcha_secret')) == false || $provider->validateKey(Input::get('recaptcha')) == false) {
-                        $captcha_warning = $language->get('admin', 'invalid_recaptcha_settings', [
-                            'recaptchaProvider' => Text::bold(Input::get('captcha_type'))
-                        ]);
-                    }
-
-                    Util::setSetting('recaptcha_key', Input::get('recaptcha'));
-                    Util::setSetting('recaptcha_secret', Input::get('recaptcha_secret'));
-
-                } else if (empty(Input::get('recaptcha_key')) && empty(Input::get('recaptcha_secret'))) {
-                    Util::setSetting('recaptcha_key', '');
-                    Util::setSetting('recaptcha_secret', '');
+            // Config value
+            if (Input::get('enable_recaptcha') == 1 || Input::get('enable_recaptcha_login') == 1) {
+                if (is_writable(ROOT_PATH . '/' . implode(DIRECTORY_SEPARATOR, ['core', 'config.php']))) {
+                    Config::set('core.captcha', true);
+                } else {
+                    $errors = [$language->get('admin', 'config_not_writable')];
                 }
+            }
 
-                Util::setSetting('recaptcha', (isset($_POST['enable_recaptcha']) && $_POST['enable_recaptcha'] == '1') ? '1' : '0');
-                Util::setSetting('recaptcha_login', (isset($_POST['enable_recaptcha_login']) && $_POST['enable_recaptcha_login'] == '1') ? '1' : '0');
+            // Validation group
+            $validation_action = json_decode(Settings::get('validate_user_action'), true);
+            $new_value = json_encode(['action' => $validation_action['action'] ?? 'promote', 'group' => $_POST['promote_group']]);
+            Settings::set('validate_user_action', $new_value);
 
-                // Config value
-                if (Input::get('enable_recaptcha') == 1 || Input::get('enable_recaptcha_login') == 1) {
-                    if (is_writable(ROOT_PATH . '/' . implode(DIRECTORY_SEPARATOR, ['core', 'config.php']))) {
-                        Config::set('core.captcha', true);
-                    } else {
-                        $errors = [$language->get('admin', 'config_not_writable')];
-                    }
-                }
-
-                // Validation group
-                $validation_action = json_decode(Util::getSetting('validate_user_action'), true);
-                $new_value = json_encode(['action' => $validation_action['action'] ?? 'promote', 'group' => $_POST['promote_group']]);
-                Util::setSetting('validate_user_action', $new_value);
+            if (is_numeric(Input::get('purge_users')) && (int) Input::get('purge_users') >= 0) {
+                // Purge users after x days
+                Settings::set('purge_inactive_users_cutoff', Input::get('purge_users'));
             }
         }
 
         if (!count($errors)) {
-            $success = $language->get('admin', 'registration_settings_updated');
+            Session::flash('registration_success', $language->get('admin', 'registration_settings_updated'));
+            Redirect::to(URL::build('/panel/core/registration'));
         }
     } else {
         // Invalid token
@@ -109,6 +97,10 @@ if (Input::exists()) {
 
 // Load modules + template
 Module::loadPage($user, $pages, $cache, $smarty, [$navigation, $cc_nav, $staffcp_nav], $widgets, $template);
+
+if (Session::exists('registration_success')) {
+    $success = Session::flash('registration_success');
+}
 
 if (isset($success)) {
     $smarty->assign([
@@ -132,17 +124,16 @@ if (isset($errors) && count($errors)) {
 }
 
 // Check if registration is enabled
-$registration_enabled = DB::getInstance()->get('settings', ['name', 'registration_enabled'])->results();
-$registration_enabled = $registration_enabled[0]->value;
+$registration_enabled = Settings::get('registration_enabled');
 
 // Validation group
-$validation_group = Util::getSetting('validate_user_action');
+$validation_group = Settings::get('validate_user_action');
 $validation_group = json_decode($validation_group, true);
 $validation_group = $validation_group['group'] ?? 1;
 
 $all_captcha_options = CaptchaBase::getAllProviders();
 $captcha_options = [];
-$active_option = Util::getSetting('recaptcha_type');
+$active_option = Settings::get('recaptcha_type');
 $active_option_name = $active_option ?: '';
 
 foreach ($all_captcha_options as $option) {
@@ -152,48 +143,27 @@ foreach ($all_captcha_options as $option) {
     ];
 }
 
-$oauth_provider_data = [];
-foreach (NamelessOAuth::getInstance()->getProviders() as $provider_name => $provider_data) {
-    [$client_id, $client_secret] = NamelessOAuth::getInstance()->getCredentials($provider_name);
-    $oauth_provider_data[$provider_name] = [
-        'enabled' => NamelessOAuth::getInstance()->isEnabled($provider_name),
-        'setup' => NamelessOAuth::getInstance()->isSetup($provider_name),
-        'icon' => $provider_data['icon'],
-        'client_id' => $client_id,
-        'client_secret' => $client_secret,
-    ];
-}
-
 $smarty->assign([
     'EMAIL_VERIFICATION' => $language->get('admin', 'email_verification'),
-    'EMAIL_VERIFICATION_VALUE' => Util::getSetting('email_verification') === '1',
+    'EMAIL_VERIFICATION_VALUE' => Settings::get('email_verification') === '1',
     'CAPTCHA_GENERAL' => $language->get('admin', 'captcha_general'),
-    'CAPTCHA_GENERAL_VALUE' => Util::getSetting('recaptcha'),
+    'CAPTCHA_GENERAL_VALUE' => Settings::get('recaptcha'),
     'CAPTCHA_LOGIN' => $language->get('admin', 'captcha_login'),
-    'CAPTCHA_LOGIN_VALUE' => Util::getSetting('recaptcha_login'),
+    'CAPTCHA_LOGIN_VALUE' => Settings::get('recaptcha_login'),
     'CAPTCHA_TYPE' => $language->get('admin', 'captcha_type'),
-    'CAPTCHA_TYPE_VALUE' => Util::getSetting('recaptcha_type', 'Recaptcha2'),
+    'CAPTCHA_TYPE_VALUE' => Settings::get('recaptcha_type', 'Recaptcha2'),
     'CAPTCHA_SITE_KEY' => $language->get('admin', 'captcha_site_key'),
-    'CAPTCHA_SITE_KEY_VALUE' => Output::getClean(Util::getSetting('recaptcha_key')),
+    'CAPTCHA_SITE_KEY_VALUE' => Output::getClean(Settings::get('recaptcha_key')),
     'CAPTCHA_SECRET_KEY' => $language->get('admin', 'captcha_secret_key'),
-    'CAPTCHA_SECRET_KEY_VALUE' => Output::getClean(Util::getSetting('recaptcha_secret')),
+    'CAPTCHA_SECRET_KEY_VALUE' => Output::getClean(Settings::get('recaptcha_secret')),
     'REGISTRATION_DISABLED_MESSAGE' => $language->get('admin', 'registration_disabled_message'),
-    'REGISTRATION_DISABLED_MESSAGE_VALUE' => Output::getPurified(Util::getSetting('registration_disabled_message')),
+    'REGISTRATION_DISABLED_MESSAGE_VALUE' => Output::getPurified(Settings::get('registration_disabled_message')),
     'VALIDATE_PROMOTE_GROUP' => $language->get('admin', 'validation_promote_group'),
     'VALIDATE_PROMOTE_GROUP_INFO' => $language->get('admin', 'validation_promote_group_info'),
     'INFO' => $language->get('general', 'info'),
     'GROUPS' => DB::getInstance()->get('groups', ['staff', 0])->results(),
     'VALIDATION_GROUP' => $validation_group,
     'CAPTCHA_OPTIONS' => $captcha_options,
-    'OAUTH' => $language->get('admin', 'oauth'),
-    'OAUTH_INFO' => $language->get('admin', 'oauth_info', [
-        'docLinkStart' => '<a href="https://docs.namelessmc.com/en/oauth" target="_blank">',
-        'docLinkEnd' => '</a>'
-    ]),
-    'REDIRECT_URL' => $language->get('admin', 'redirect_url'),
-    'CLIENT_ID' => $language->get('admin', 'client_id'),
-    'CLIENT_SECRET' => $language->get('admin', 'client_secret'),
-    'OAUTH_URL' => URL::getSelfURL() . ltrim(URL::build('/oauth/', 'provider={{provider}}'), '/'),
     'PARENT_PAGE' => PARENT_PAGE,
     'DASHBOARD' => $language->get('admin', 'dashboard'),
     'CONFIGURATION' => $language->get('admin', 'configuration'),
@@ -203,7 +173,9 @@ $smarty->assign([
     'SUBMIT' => $language->get('general', 'submit'),
     'ENABLE_REGISTRATION' => $language->get('admin', 'enable_registration'),
     'REGISTRATION_ENABLED' => $registration_enabled,
-    'OAUTH_PROVIDER_DATA' => $oauth_provider_data,
+    'PURGE_USERS_AFTER' => $language->get('admin', 'purge_inactive_users_after'),
+    'PURGE_USERS_AFTER_INFO' => $language->get('admin', 'purge_inactive_users_info'),
+    'PURGE_USERS_AFTER_VALUE' => Settings::get('purge_inactive_users_cutoff', '0'),
 ]);
 
 $template->onPageLoad();

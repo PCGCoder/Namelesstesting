@@ -7,8 +7,8 @@
  * @version 2.0.0-pr13
  * @license MIT
  */
-class UserData {
-
+class UserData
+{
     public int $id;
     public string $username;
     public string $nickname;
@@ -21,7 +21,6 @@ class UserData {
     public bool $active;
     public ?string $signature;
     public int $profile_views;
-    public int $reputation;
     public ?string $reset_code;
     public bool $has_avatar;
     public bool $gravatar;
@@ -40,8 +39,11 @@ class UserData {
     public ?string $banner;
     public string $timezone;
     public ?string $avatar_updated;
+    public ?string $register_method;
+    public bool $authme_sync_password;
 
-    public function __construct(object $row) {
+    public function __construct(object $row)
+    {
         $this->id = $row->id;
         $this->username = $row->username;
         $this->nickname = $row->nickname;
@@ -54,7 +56,6 @@ class UserData {
         $this->active = $row->active;
         $this->signature = $row->signature;
         $this->profile_views = $row->profile_views;
-        $this->reputation = $row->reputation;
         $this->reset_code = $row->reset_code;
         $this->has_avatar = $row->has_avatar;
         $this->gravatar = $row->gravatar;
@@ -73,6 +74,7 @@ class UserData {
         $this->banner = $row->banner;
         $this->timezone = $row->timezone;
         $this->avatar_updated = $row->avatar_updated;
+        $this->register_method = $row->register_method;
+        $this->authme_sync_password = $row->authme_sync_password;
     }
-
 }

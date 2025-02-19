@@ -37,7 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         try {
             // This throws a PDOException if the connection fails
-            DB::getCustomInstance($db_address, $db_name, $db_username, $db_password, $db_port, $force_charset=$db_charset);
+            $db = DB::getCustomInstance($db_address, $db_name, $db_username, $db_password, $db_port, $force_charset=$db_charset);
+
+            // Throw an exception if they attempt to reinstall with a database that contains some NamelessMC data already
+            if ($db->showTables('modules') > 0) {
+                throw new RuntimeException('Database already contains tables');
+            }
 
             $conf = [
                 'mysql' => [
@@ -47,11 +52,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     'password' => $db_password,
                     'db' => $db_name,
                     'charset' => 'utf8mb4',
+                    'collation' => 'utf8mb4_unicode_ci',
                     'initialise_charset' => true,
+                    'initialise_collation' => true,
                 ],
                 'remember' => [
                     'cookie_name' => 'nl2',
-                    'cookie_expiry' => 604800,
+                    'cookie_expiry' => 2629800,
                 ],
                 'session' => [
                     'session_name' => '2user',

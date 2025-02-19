@@ -1,26 +1,27 @@
 <?php
 /**
- * Report creation class
+ * Report creation class.
  *
  * @package NamelessMC\Misc
  * @author Samerton
  * @version 2.0.0-pr8
  * @license MIT
  */
-class Report {
-
+class Report
+{
     public const ORIGIN_WEBSITE = 0;
     public const ORIGIN_API = 1;
 
     /**
      * Create a report.
      *
-     * @param Language $language Language to use for messages.
-     * @param User $user_reporting User making the report.
-     * @param User $reported_user User being reported.
-     * @param array $data Array containing report data.
+     * @param Language $language       Language to use for messages.
+     * @param User     $user_reporting User making the report.
+     * @param User     $reported_user  User being reported.
+     * @param array    $data           Array containing report data.
      */
-    public static function create(Language $language, User $user_reporting, User $reported_user, array $data): void {
+    public static function create(Language $language, User $user_reporting, User $reported_user, array $data): void
+    {
         $db = DB::getInstance();
 
         $db->insert('reports', array_merge($data, [
@@ -39,7 +40,7 @@ class Report {
             $groups = '(';
             foreach ($moderator_groups as $group) {
                 if (is_numeric($group->id)) {
-                    $groups .= ((int)$group->id) . ',';
+                    $groups .= ((int) $group->id) . ',';
                 }
             }
             $groups = rtrim($groups, ',') . ')';
@@ -53,13 +54,13 @@ class Report {
             }
         }
 
-        EventHandler::executeEvent('createReport', [
-            'username' => $data['reported_mcname'],
-            'content' => $language->get('general', 'reported_by', ['author' => $user_reporting->data()->username]),
-            'content_full' => $data['report_reason'],
-            'avatar_url' => $data['reported_id'] == 0 ? null : ($data['reported_uuid'] !== null ? AvatarSource::getAvatarFromUUID($data['reported_uuid']) : $reported_user->getAvatar()),
-            'title' => $language->get('general', 'view_report'),
-            'url' => rtrim(URL::getSelfURL(), '/') . URL::build('/panel/users/reports/', 'id=' . $id)
-        ]);
+        EventHandler::executeEvent(new ReportCreatedEvent(
+            $reported_user->data()->username,
+            $language->get('general', 'reported_by', ['author' => $user_reporting->data()->username]),
+            $data['report_reason'],
+            $data['reported_id'] == 0 ? null : ($data['reported_uuid'] !== null ? AvatarSource::getAvatarFromUUID($data['reported_uuid']) : $reported_user->getAvatar()),
+            $language->get('general', 'view_report'),
+            rtrim(URL::getSelfURL(), '/') . URL::build('/panel/users/reports/', 'id=' . $id),
+        ));
     }
 }

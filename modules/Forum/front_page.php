@@ -2,20 +2,24 @@
 /*
  *  Made by Samerton
  *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.0
+ *  NamelessMC version 2.1.0
  *
  *  License: MIT
  *
  *  Forum module - front page module
  */
 
+$groups_key = implode('-', $user->getAllGroupIds());
 $cache->setCache('news_cache');
-if ($cache->isCached('news')) {
-    $news = $cache->retrieve('news');
+if ($cache->isCached('news-' . $groups_key)) {
+    $news = $cache->retrieve('news-' . $groups_key);
 } else {
     $forum = new Forum();
 
-    $latest_news = $forum->getLatestNews(); // Get latest 5 items
+    $latest_news = $forum->getLatestNews(
+        Settings::get('news_items_front_page', 5, 'forum'),
+        $user->getAllGroupIds()
+    ); // Get latest 5 items
 
     $news = [];
 
@@ -44,7 +48,7 @@ if ($cache->isCached('news')) {
         ];
     }
 
-    $cache->store('news', $news, 60);
+    $cache->store('news-' . $groups_key, $news, 60);
 }
 
 $timeago = new TimeAgo(TIMEZONE);

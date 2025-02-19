@@ -362,10 +362,7 @@ if (isset($_GET['action'])) {
 
                                 $group_id = DB::getInstance()->lastId();
 
-                                EventHandler::executeEvent('cloneGroup', [
-                                    'group_id' => $group_id,
-                                    'cloned_group_id' => $group->id,
-                                ]);
+                                EventHandler::executeEvent(new GroupClonedEvent($group_id, $group->id));
 
                                 if ($default == 1) {
                                     if ($default_group && $default_group->id != $group_id) {
@@ -512,6 +509,7 @@ if (isset($_GET['action'])) {
             'edit_link' => URL::build('/panel/core/groups/', 'action=edit&group=' . urlencode($group->id)),
             'clone_link' => URL::build('/panel/core/groups/', 'action=clone&group=' . urlencode($group->id)),
             'users' => DB::getInstance()->query('SELECT COUNT(*) AS c FROM nl2_users_groups WHERE group_id = ?', [$group->id])->first()->c,
+            'users_link' => URL::build('/panel/users/', 'group=' . $group->id),
             'staff' => $group->staff
         ];
     }

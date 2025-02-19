@@ -8,11 +8,19 @@ function redirect(url) {
 }
 
 function copy(element) {
-    const temp = $('<input>');
-    $('body').append(temp);
-    temp.val($(element).text()).select();
-    document.execCommand('copy');
-    temp.remove();
+    const target = $(element);
+
+    if (window.isSecureContext) {
+        navigator.clipboard.writeText(target.text());
+    } else {
+        const temp = document.createElement("textarea");
+        temp.value = target.text();
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("Copy");
+        temp.remove();
+    }
+
     $('body').toast({
         showIcon: 'checkmark',
         message: copied,
@@ -74,13 +82,19 @@ $(function () {
 
     $('*[data-poload]').mouseenter(function () {
         const elem = this;
-        $.get($(elem).data('poload'),
-            function (d) {
-                (debugging ? console.log(d) : '');
-                const data = JSON.parse(d);
+        $.get(
+            $(elem).data('poload'),
+            function (data) {
+                if (debugging) {
+                    console.log(data);
+                }
+
+                data = JSON.parse(data);
                 cachedUsers[$(elem).data('poload')] = data;
+
                 const tmp = document.createElement('div');
                 tmp.innerHTML = data.html;
+
                 const img = tmp.getElementsByTagName('img')[0];
                 const image = new Image();
                 image.src = img.src;
@@ -96,14 +110,13 @@ $(function () {
     });
 
     const timezone = document.getElementById('timezone');
-
     if (timezone) {
-        const timezoneValue = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const dateFormatter = Intl.DateTimeFormat();
+        const timezoneValue = dateFormatter.resolvedOptions().timeZone;
         if (timezoneValue) {
             timezone.value = timezoneValue;
         }
     }
-
 });
 
 const announcements = document.querySelectorAll('[id^="announcement"]');

@@ -2,7 +2,7 @@
 /*
  *  Made by Samerton
  *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.0-pr9
+ *  NamelessMC version 2.2.0
  *
  *  License: MIT
  *
@@ -62,7 +62,11 @@ if (!isset($_GET['metadata'])) {
                 $success = $language->get('admin', 'sitemap_generated');
             } else {
                 if (Input::get('type') == 'google_analytics') {
-                    Util::setSetting('ga_script', Input::get('analyticsid'));
+                    Settings::set('ga_script', Input::get('analyticsid'));
+                    $success = $language->get('admin', 'seo_settings_updated_successfully');
+                } else if (Input::get('type') == 'meta') {
+                    Settings::set('default_meta_description', Input::get('default_description'));
+                    Settings::set('default_meta_keywords', Input::get('default_keywords'));
                     $success = $language->get('admin', 'seo_settings_updated_successfully');
                 }
             }
@@ -98,6 +102,13 @@ if (!isset($_GET['metadata'])) {
         }
     }
 
+    $smarty->assign([
+        'DEFAULT_DESCRIPTION' => $language->get('admin', 'default_description'),
+        'DEFAULT_DESCRIPTION_VALUE' => Settings::get('default_meta_description'),
+        'DEFAULT_KEYWORDS' => $language->get('admin', 'default_keywords'),
+        'DEFAULT_KEYWORDS_VALUE' => Settings::get('default_meta_keywords'),
+    ]);
+
     $template_file = 'core/seo.tpl';
 } else {
     $page = $pages->getPageById($_GET['metadata']);
@@ -105,9 +116,13 @@ if (!isset($_GET['metadata'])) {
         Redirect::to(URL::build('/panel/core/seo'));
     }
 
+    $template->assets()->include(
+        AssetTree::IMAGE_PICKER,
+    );
+
     $page_metadata = DB::getInstance()->get('page_descriptions', ['page', $page['key']])->results();
     if (Input::exists()) {
-        if (Token::check(Input::get('token'))) {
+        if (Token::check()) {
             if (isset($_POST['description'])) {
                 if (strlen($_POST['description']) > 500) {
                     $errors[] = $language->get('admin', 'description_max_500');
@@ -120,20 +135,28 @@ if (!isset($_GET['metadata'])) {
 
             $keywords = $_POST['keywords'] ?? null;
 
+            if (Input::get('inputImage')) {
+                $image_url = ((defined('CONFIG_PATH')) ? CONFIG_PATH . '/' : '/') . 'uploads/og_images/' . Input::get('inputImage');
+            } else {
+                $image_url = '';
+            }
+
             if (!count($errors)) {
                 if (count($page_metadata)) {
                     $page_id = $page_metadata[0]->id;
 
                     DB::getInstance()->update('page_descriptions', $page_id, [
                         'description' => $description,
-                        'tags' => $keywords
+                        'tags' => $keywords,
+                        'image' => $image_url,
                     ]);
 
                 } else {
                     DB::getInstance()->insert('page_descriptions', [
                         'page' => $page['key'],
                         'description' => $description,
-                        'tags' => $keywords
+                        'tags' => $keywords,
+                        'image' => $image_url,
                     ]);
                 }
 
@@ -150,9 +173,29 @@ if (!isset($_GET['metadata'])) {
     if (count($page_metadata)) {
         $description = Output::getClean($page_metadata[0]->description);
         $tags = Output::getClean($page_metadata[0]->tags);
+        $og_image = Output::getClean($page_metadata[0]->image);
     } else {
         $description = '';
         $tags = '';
+        $og_image = '';
+    }
+
+    $image_path = implode(DIRECTORY_SEPARATOR, [ROOT_PATH, 'uploads', 'og_images']);
+    $images = scandir($image_path);
+    $og_images = [];
+    $n = 1;
+    foreach ($images as $image) {
+        $ext = pathinfo($image, PATHINFO_EXTENSION);
+        if (!in_array($ext, ['png', 'jpg', 'jpeg'])) {
+            continue;
+        }
+        $og_images[] = [
+            'src' => (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/uploads/og_images/' . $image,
+            'value' => $image,
+            'selected' => ($og_image === (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/uploads/og_images/' . $image),
+            'n' => $n
+        ];
+        $n++;
     }
 
     $smarty->assign([
@@ -164,7 +207,9 @@ if (!isset($_GET['metadata'])) {
         'DESCRIPTION' => $language->get('admin', 'description'),
         'DESCRIPTION_VALUE' => $description,
         'KEYWORDS' => $language->get('admin', 'keywords'),
-        'KEYWORDS_VALUE' => $tags
+        'KEYWORDS_VALUE' => $tags,
+        'IMAGE' => $language->get('admin', 'image'),
+        'OG_IMAGES_ARRAY' => $og_images,
     ]);
 
     $template_file = 'core/seo_metadata_edit.tpl';
@@ -192,7 +237,7 @@ $smarty->assign([
     'PAGE' => PANEL_PAGE,
     'TOKEN' => Token::get(),
     'GENERATE' => $language->get('admin', 'generate_sitemap'),
-    'GOOGLE_ANALYTICS_VALUE' => Util::getSetting('ga_script'),
+    'GOOGLE_ANALYTICS_VALUE' => Settings::get('ga_script'),
     'PAGE_TITLE' => $language->get('admin', 'page'),
     'PAGE_LIST' => $pages->returnPages(),
     'EDIT_LINK' => URL::build('/panel/core/seo/', 'metadata={x}'),

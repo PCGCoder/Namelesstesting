@@ -28,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         ],
         'language' => [
             Validate::REQUIRED => true,
-        ]
+        ],
+        'timezone' => [
+            Validate::REQUIRED => true,
+        ],
     ]);
 
     if (!$validation->passed()) {
@@ -38,11 +41,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
 
         try {
-            Util::setSetting('sitename', Input::get('sitename'));
-            Util::setSetting('incoming_email', Input::get('incoming'));
-            Util::setSetting('outgoing_email', Input::get('outgoing'));
+            Settings::set('sitename', Input::get('sitename'));
+            Settings::set('incoming_email', Input::get('incoming'));
+            Settings::set('outgoing_email', Input::get('outgoing'));
 
             $_SESSION['default_language'] = Input::get('language');
+
+            $_SESSION['install_timezone'] = in_array($timezone = Input::get('timezone'), DateTimeZone::listIdentifiers())
+                ? $timezone
+                : 'Europe/London';
 
             Redirect::to('?step=site_initialization');
         } catch (Exception $e) {
@@ -75,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <?php create_field('email', $language->get('installer', 'contact_email'), 'incoming', 'contact_email', getenv('NAMELESS_SITE_CONTACT_EMAIL') ?: ''); ?>
                         <?php create_field('email', $language->get('installer', 'outgoing_email'), 'outgoing', 'outgoing_email', getenv('NAMELESS_SITE_OUTGOING_EMAIL') ?: ''); ?>
                         <?php create_field('select', $language->get('installer', 'language'), 'language', 'inputLanguage', $installer_language, $languages) ?>
+                        <?php create_field('select', $language->get('installer', 'timezone'), 'timezone', 'inputTimezone', '', array_map(static fn ($timezone) => "({$timezone['offset']}) - {$timezone['name']} ({$timezone['time']})", Util::listTimezones())) ?>
                     </div>
                 </div>
             </div>
@@ -87,3 +95,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </div>
 </div>
 </form>
+<script>
+    const timezone = document.getElementById('inputTimezone');
+    if (timezone) {
+        const dateFormatter = Intl.DateTimeFormat();
+        const timezoneValue = dateFormatter.resolvedOptions().timeZone;
+        if (timezoneValue) {
+            timezone.value = timezoneValue;
+        }
+    }
+</script>

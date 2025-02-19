@@ -5,7 +5,7 @@
  *
  *  For NamelessMC
  *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.0
+ *  NamelessMC version 2.1.2
  *
  *  License: MIT
  *
@@ -14,18 +14,19 @@
 
 // Always have the following if statement around your class
 if (!class_exists('Default_Panel_Template')) {
-    class Default_Panel_Template extends TemplateBase {
-
+    class Default_Panel_Template extends TemplateBase
+    {
         private Language $_language;
 
         // Constructor - set template name, version, Nameless version and author here
-        public function __construct(Smarty $smarty, Language $language) {
+        public function __construct(Smarty $smarty, Language $language)
+        {
             $this->_language = $language;
 
             parent::__construct(
                 'Default',  // Template name
-                '2.0.2',  // Template version
-                '2.0.2',  // Nameless version template is made for
+                '2.1.3',  // Template version
+                '2.1.3',  // Nameless version template is made for
                 '<a href="https://coldfiredzn.com" target="_blank">Coldfire</a>'  // Author, you can use HTML here
             );
 
@@ -40,103 +41,88 @@ if (!class_exists('Default_Panel_Template')) {
             $this->addCSSFiles([
                 (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/custom/panel_templates/Default/assets/css/sb-admin-2.min.css' => [],
                 'https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i' => [],
-                (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/custom/panel_templates/Default/assets/css/custom.css?v=200' => [],
+                (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/custom/panel_templates/Default/assets/css/custom.css?v=211' => [],
             ]);
 
             $this->addJSFiles([
                 (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/custom/panel_templates/Default/assets/js/sb-admin-2.js' => [],
             ]);
 
-            $this->addJSScript('
-                // Dark and light theme switch
-                var currentPanelTheme = $.cookie("nmc_panel_theme");
+            // Dark mode
+            $dark_mode = defined('DARK_MODE') && DARK_MODE ? DARK_MODE : 0;
 
-                if (currentPanelTheme == null) {
-                    $.cookie("nmc_panel_theme", "light", { path: "/" });
-                } else {
-                    if (currentPanelTheme == "dark") {
-                        $("html").addClass("dark");
-                        if ($("#dark_mode").length) {
-                            $("#dark_mode").prop("checked", true);
+            $this->addJSScript(
+                <<<JS
+                    // Dark and light theme switch
+                    if ($dark_mode == 1) {
+                        \$("html").addClass("dark");
+                        if (\$("#dark_mode").length) {
+                            \$("#dark_mode").prop("checked", true);
                         }
                     }
-                }
 
-                // Prevents light flicker on dark mode
-                $("body").addClass("visible");
+                    // Prevents light flicker on dark mode
+                    \$("body").addClass("visible");
 
-                if ($("#dark_mode").length) {
-                    var changeCheckbox = document.querySelector("#dark_mode");
-                    changeCheckbox.onchange = function() {
-                        if (currentPanelTheme == "dark") {
-                            $.cookie("nmc_panel_theme", "light", { path: "/" });
-                        };
-                        if (currentPanelTheme == "light") {
-                            $.cookie("nmc_panel_theme", "dark", { path: "/" });
-                        };
-                        location.reload();
-                        return false;
-                    };
-                }
+                    // Sidebar Fixes
+                    if (\$(".sidebar").length) {
+                        \$(".nav-icon").addClass("fa-fw");
+                        \$(".nav-icon").removeClass("nav-icon");
 
-                // Sidebar Fixes
-                if ($(".sidebar").length) {
-                    $(".nav-icon").addClass("fa-fw");
-                    $(".nav-icon").removeClass("nav-icon");
+                        let sidebarState = sessionStorage.getItem("sidebar");
+                        \$(".sidebar").toggleClass(sidebarState);
 
-                    let sidebarState = sessionStorage.getItem("sidebar");
-                    $(".sidebar").toggleClass(sidebarState);
+                        \$("#sidebarToggle, #sidebarToggleTop").on("click", function(e) {
+                              \$("body").toggleClass("sidebar-toggled");
+                              \$(".sidebar").toggleClass("toggled");
+                              if (\$(".sidebar").hasClass("toggled")) {
+                                sessionStorage.setItem("sidebar", "toggled");
+                                \$(".sidebar .collapse").collapse("hide");
+                              } else {
+                                sessionStorage.setItem("sidebar", "");
+                              };
+                        });
 
-                    $("#sidebarToggle, #sidebarToggleTop").on("click", function(e) {
-                          $("body").toggleClass("sidebar-toggled");
-                          $(".sidebar").toggleClass("toggled");
-                          if ($(".sidebar").hasClass("toggled")) {
-                            sessionStorage.setItem("sidebar", "toggled");
-                            $(".sidebar .collapse").collapse("hide");
-                          } else {
-                            sessionStorage.setItem("sidebar", "");
-                          };
-                    });
-
-                    if ($(window).width() < 768) {
-                        $(".sidebar").addClass("toggled")
-                    }
-                }
-
-                // Some popover stuff
-                $(document).ready(function(){
-                    $(\'[data-toggle="tooltip"]\').tooltip();
-                });
-                $(document).ready(function(){
-                    $(\'[data-toggle="popover"]\').popover({trigger:\'manual\',html:true}).on("mouseenter", function() {
-                      var _this = this;
-                      $(this).popover("show");
-                      $(".popover").on("mouseleave", function() {
-                        $(_this).popover(\'hide\');
-                      });
-                    }).on("mouseleave", function() {
-                      var _this = this;
-                      setTimeout(function() {
-                        if (!$(".popover:hover").length) {
-                          $(_this).popover("hide")
+                        if (\$(window).width() < 768) {
+                            \$(".sidebar").addClass("toggled")
                         }
-                      }, 250);
-                    });
-                });
+                    }
 
-                // Fix settings dropdown
-                if ($(".settings-dropdown").length) {
-                    $(".settings-dropdown .dropdown-menu .dropdown-item select").click(function(e) {
-                        e.stopPropagation();
+                    // Some popover stuff
+                    \$(document).ready(function(){
+                        \$('[data-toggle="tooltip"]').tooltip();
                     });
-                }
+                    \$(document).ready(function(){
+                        \$('[data-toggle="popover"]').popover({trigger:'manual',html:true}).on("mouseenter", function() {
+                          var _this = this;
+                          \$(this).popover("show");
+                          \$(".popover").on("mouseleave", function() {
+                            \$(_this).popover('hide');
+                          });
+                        }).on("mouseleave", function() {
+                          var _this = this;
+                          setTimeout(function() {
+                            if (!\$(".popover:hover").length) {
+                              \$(_this).popover("hide")
+                            }
+                          }, 250);
+                        });
+                    });
 
-            ');
+                    // Fix settings dropdown
+                    if (\$(".settings-dropdown").length) {
+                        \$(".settings-dropdown .dropdown-menu .dropdown-item select").click(function(e) {
+                            e.stopPropagation();
+                        });
+                    }
+                JS
+            );
 
             $smarty->assign('NAMELESS_LOGO', (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/core/assets/img/namelessmc_logo.png');
         }
 
-        public function onPageLoad() {
+        public function onPageLoad()
+        {
             $page_load = microtime(true) - PAGE_START_TIME;
             define('PAGE_LOAD_TIME', $this->_language->get('general', 'page_loaded_in', ['time' => round($page_load, 3)]));
 
@@ -152,14 +138,7 @@ if (!class_exists('Default_Panel_Template')) {
 
                     case 'api':
                         $this->assets()->include([
-                            AssetTree::DATATABLES
-                        ]);
-                        $this->addCSSFiles([
-                            (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/core/assets/css/fomantic.toast.min.css' => [],
-                        ]);
-
-                        $this->addJSFiles([
-                            (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/core/assets/js/fomantic.toast.min.js' => [],
+                            AssetTree::DATATABLES,
                         ]);
 
                         $this->addJSScript('
@@ -224,16 +203,7 @@ if (!class_exists('Default_Panel_Template')) {
                             AssetTree::TINYMCE,
                         ]);
 
-                        $this->addCSSFiles([
-                            (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/core/assets/css/fomantic.toast.min.css' => []
-                        ]);
-
-                        $this->addJSFiles([
-                            (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/core/assets/js/fomantic.toast.min.js' => [],
-                        ]);
-
                         $this->addJSScript(Input::createTinyEditor($this->_language, 'InputMaintenanceMessage', null, false, true));
-
                         break;
 
                     case 'privacy_and_terms':
@@ -320,6 +290,23 @@ if (!class_exists('Default_Panel_Template')) {
                                 AssetTree::DATATABLES,
                             ]);
 
+                            $url_parameters = [];
+                            if (isset($_GET['group'])) {
+                                $url_parameters[] = 'group=' . Output::getClean($_GET['group']);
+                            }
+
+                            if (isset($_GET['integration'])) {
+                                $url_parameters[] = 'integration=' . Output::getClean($_GET['integration']);
+                            }
+
+                            if (isset($_GET['banned'])) {
+                                $url_parameters[] = 'banned=' . Output::getClean($_GET['banned']);
+                            }
+
+                            if (isset($_GET['active'])) {
+                                $url_parameters[] = 'active=' . Output::getClean($_GET['active']);
+                            }
+
                             $this->addJSScript('
                             $(document).ready(function() {
                                 var usersTable = $(\'.dataTables-users\').DataTable({
@@ -332,7 +319,7 @@ if (!class_exists('Default_Panel_Template')) {
                                     responsive: true,
                                     processing: true,
                                     serverSide: true,
-                                    ajax: "' . URL::build('/queries/admin_users') . '",
+                                    ajax: "' . URL::build('/queries/admin_users', implode('&', $url_parameters)) . '",
                                     columns: [
                                         { data: "id", hidden: true },
                                         { data: "username" },
@@ -358,14 +345,12 @@ if (!class_exists('Default_Panel_Template')) {
                                 });
                             });
                             ');
-
                         }
 
                         break;
 
                     case 'minecraft':
                         if (!defined('MINECRAFT_PAGE')) {
-
                             $this->addJSScript('
                             if ($(\'.js-check-change\').length) {
                                 var changeCheckbox = document.querySelector(\'.js-check-change\');
@@ -376,8 +361,16 @@ if (!class_exists('Default_Panel_Template')) {
                             }
                             ');
 
-                        } else if (MINECRAFT_PAGE == 'authme') {
+                            $this->addJSScript('
+                            if ($(\'.js-check-change-verification\').length) {
+                                var changeCheckbox = document.querySelector(\'.js-check-change-verification\');
 
+                                changeCheckbox.onchange = function () {
+                                    $(\'#enablePremium\').submit();
+                                };
+                            }
+                            ');
+                        } elseif (MINECRAFT_PAGE == 'authme') {
                             $this->addJSScript('
                             if ($(\'.js-check-change\').length) {
                                 var changeCheckbox = document.querySelector(\'.js-check-change\');
@@ -387,24 +380,11 @@ if (!class_exists('Default_Panel_Template')) {
                                 };
                             }
                             ');
-
-                        } else if (MINECRAFT_PAGE == 'verification') {
-
-                            $this->addJSScript('
-                            if ($(\'.js-check-change\').length) {
-                                var changeCheckbox = document.querySelector(\'.js-check-change\');
-
-                                changeCheckbox.onchange = function () {
-                                    $(\'#enablePremium\').submit();
-                                };
-                            }
-                            ');
-
-                        } else if (MINECRAFT_PAGE == 'servers') {
+                        } elseif (MINECRAFT_PAGE == 'servers') {
                             $this->assets()->include([
                                 AssetTree::JQUERY_UI,
                             ]);
-                        } else if (MINECRAFT_PAGE == 'query_errors') {
+                        } elseif (MINECRAFT_PAGE == 'query_errors') {
                             $this->addCSSStyle('
                             .error_log {
                                 width: 100%;
@@ -419,8 +399,7 @@ if (!class_exists('Default_Panel_Template')) {
                                 background-color: #eceeef;
                             }
                             ');
-
-                        } else if (MINECRAFT_PAGE == 'server_banners') {
+                        } elseif (MINECRAFT_PAGE == 'server_banners') {
                             if (isset($_GET['edit'])) {
                                 $this->assets()->include([
                                     AssetTree::IMAGE_PICKER,
@@ -434,6 +413,10 @@ if (!class_exists('Default_Panel_Template')) {
 
                                 $this->addJSScript('$(".image-picker").imagepicker();');
                             }
+                        } elseif (MINECRAFT_PAGE === 'placeholders') {
+                            $this->assets()->include([
+                                AssetTree::JQUERY_UI,
+                            ]);
                         }
 
                         break;
@@ -516,7 +499,7 @@ if (!class_exists('Default_Panel_Template')) {
                     case 'forums':
                         $this->assets()->include([
                             AssetTree::TINYMCE,
-                            AssetTree::JQUERY_UI
+                            AssetTree::JQUERY_UI,
                         ]);
 
                         if (isset($_GET['forum'])) {
@@ -524,6 +507,16 @@ if (!class_exists('Default_Panel_Template')) {
                         }
                         break;
 
+                    case 'member_lists':
+                        $this->addJSScript('
+                            if ($(\'.js-check-change\').length) {
+                                var changeCheckbox = document.querySelector(\'.js-check-change\');
+
+                                changeCheckbox.onchange = function () {
+                                    $(\'#toggleHideBannedUsers\').submit();
+                                };
+                            }
+                            ');
                 }
             }
         }

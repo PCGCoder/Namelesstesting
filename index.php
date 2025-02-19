@@ -34,11 +34,11 @@ define('PAGE_START_TIME', microtime(true));
 
 if (!is_dir(__DIR__ . '/vendor') || !is_dir(__DIR__ . '/core/assets/vendor')) {
     die(
-        "Your installation is missing the 'vendor' or 'core/assets/vendor' directory. These directories are included in
-        releases, but not in the git repository. For regular installations, please make sure to download a release from
-        the GitHub releases page, not from the button on the home page to download the latest source code. If you do
-        want to run the latest version from source control for development versions, please run 'composer install'
-        and 'yarnpkg'/'yarn install'."
+        "Your installation is missing the 'vendor' or 'core/assets/vendor' directory.<br>
+        <br>
+        Please use the 'nameless-deps-dist.zip' file, not a source code zip file.<br>
+        <br>
+        If you are a developer, please refer to the instructions in CONTRIBUTING.md"
     );
 }
 
@@ -49,10 +49,10 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 if (isset($_GET['route']) && $_GET['route'] == '/rewrite_test') {
     require_once('rewrite_test.php');
-    die();
+    die;
 }
 
-if (!Config::exists()) {
+if (!Config::exists() || Config::get('core.installed') !== true) {
     if (is_file(ROOT_PATH . '/install.php')) {
         Redirect::to('install.php');
     } else {
@@ -80,20 +80,25 @@ $directory = $_SERVER['REQUEST_URI'];
 $directories = explode('/', $directory);
 $lim = count($directories);
 
-
 // Start initialising the page
 require(ROOT_PATH . '/core/init.php');
 
 // Get page to load from URL
 if (!isset($_GET['route']) || $_GET['route'] == '/') {
-    if (((!isset($_GET['route']) || ($_GET['route'] != '/')) && count($directories) > 1)) {
+    if ((!isset($_GET['route']) || ($_GET['route'] != '/')) && count($directories) > 1) {
         require(ROOT_PATH . '/404.php');
     } else {
         // Homepage
-        $pages->setActivePage($pages->getPageByURL('/'));
-        require(ROOT_PATH . '/modules/Core/pages/index.php');
+        $homepage = $pages->getPageByURL(Settings::get('home_type'));
+        if ($homepage != null) {
+            $pages->setActivePage($homepage);
+            require(implode(DIRECTORY_SEPARATOR, [ROOT_PATH, 'modules', $homepage['module'], $homepage['file']]));
+        } else {
+            $pages->setActivePage($pages->getPageByURL('/'));
+            require(ROOT_PATH . '/modules/Core/pages/index.php');
+        }
     }
-    die();
+    die;
 }
 
 $route = rtrim(strtok($_GET['route'], '?'), '/');
@@ -104,21 +109,20 @@ if (array_key_exists($route, $all_pages)) {
     $pages->setActivePage($all_pages[$route]);
     if (isset($all_pages[$route]['custom'])) {
         require(implode(DIRECTORY_SEPARATOR, [ROOT_PATH, 'modules', 'Core', 'pages', 'custom.php']));
-        die();
+        die;
     }
 
     $path = implode(DIRECTORY_SEPARATOR, [ROOT_PATH, 'modules', $all_pages[$route]['module'], $all_pages[$route]['file']]);
 
     if (file_exists($path)) {
         require($path);
-        die();
+        die;
     }
 } else {
     // Use recursion to check - might have URL parameters in path
     $path_array = explode('/', $route);
 
     for ($i = count($path_array) - 2; $i > 0; $i--) {
-
         $new_path = '/';
         for ($n = 1; $n <= $i; $n++) {
             $new_path .= $path_array[$n] . '/';
@@ -132,7 +136,7 @@ if (array_key_exists($route, $all_pages)) {
             if (file_exists($path)) {
                 $pages->setActivePage($all_pages[$new_path]);
                 require($path);
-                die();
+                die;
             }
         }
     }

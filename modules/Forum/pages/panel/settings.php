@@ -23,32 +23,50 @@ require_once(ROOT_PATH . '/core/templates/backend_init.php');
 
 if (Input::exists()) {
     if (Token::check()) {
-        // Update link location
-        if (isset($_POST['link_location'])) {
-            switch ($_POST['link_location']) {
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                    $location = $_POST['link_location'];
-                    break;
-                default:
-                    $location = 1;
+        $validation = Validate::check($_POST, [
+            'news_items' => [
+                Validate::MIN => 0,
+                Validate::MAX => 20,
+            ],
+        ])->messages([
+            'news_items' => [
+                Validate::MIN => static fn($meta) => $forum_language->get('forum', 'news_items_min', $meta),
+                Validate::MAX => static fn($meta) => $forum_language->get('forum', 'news_items_max', $meta),
+            ],
+        ]);
+
+        if ($validation->passed()) {
+            // Update link location
+            if (isset($_POST['link_location'])) {
+                switch ($_POST['link_location']) {
+                    case 1:
+                    case 2:
+                    case 3:
+                    case 4:
+                        $location = $_POST['link_location'];
+                        break;
+                    default:
+                        $location = 1;
+                }
+            } else {
+                $location = 1;
             }
+
+            // Update Link location cache
+            $cache->setCache('nav_location');
+            $cache->store('forum_location', $location);
+
+            Settings::set('forum_reactions', (isset($_POST['use_reactions']) && $_POST['use_reactions'] == 'on') ? '1' : 0);
+            Settings::set('news_items_front_page', $_POST['news_items'], 'forum');
+            Settings::set('banned_terms', $_POST['banned_terms'], 'forum');
+
+            Session::flash('admin_forums_settings', $forum_language->get('forum', 'settings_updated_successfully'));
         } else {
-            $location = 1;
+            Session::put('admin_forums_settings_errors', $validation->errors());
         }
-
-        // Update Link location cache
-        $cache->setCache('nav_location');
-        $cache->store('forum_location', $location);
-
-        Util::setSetting('forum_reactions', (isset($_POST['use_reactions']) && $_POST['use_reactions'] == 'on') ? '1' : 0);
-
-        Session::flash('admin_forums_settings', $forum_language->get('forum', 'settings_updated_successfully'));
     } else {
         // Invalid token
-        Session::flash('admin_forums_settings', $language->get('general', 'invalid_token'));
+        Session::put('admin_forums_settings_errors', [$language->get('general', 'invalid_token')]);
     }
     Redirect::to(URL::build('/panel/forums/settings'));
 }
@@ -62,6 +80,10 @@ Module::loadPage($user, $pages, $cache, $smarty, [$navigation, $cc_nav, $staffcp
 
 if (Session::exists('admin_forums_settings')) {
     $success = Session::flash('admin_forums_settings');
+}
+
+if (Session::exists('admin_forums_settings_errors')) {
+    $errors = Session::flash('admin_forums_settings_errors');
 }
 
 if (isset($success)) {
@@ -90,7 +112,13 @@ $smarty->assign([
     'LINK_FOOTER' => $language->get('admin', 'page_link_footer'),
     'LINK_NONE' => $language->get('admin', 'page_link_none'),
     'USE_REACTIONS' => $forum_language->get('forum', 'use_reactions'),
-    'USE_REACTIONS_VALUE' => Util::getSetting('forum_reactions') === '1',
+    'USE_REACTIONS_VALUE' => Settings::get('forum_reactions') === '1',
+    'NEWS_ITEMS_ON_FRONT_PAGE' => $forum_language->get('forum', 'news_items_front_page_limit'),
+    'NEWS_ITEMS_ON_FRONT_PAGE_VALUE' => Settings::get('news_items_front_page', 5, 'forum'),
+    'BANNED_TERMS' => $forum_language->get('forum', 'banned_terms'),
+    'BANNED_TERMS_INFO' => $forum_language->get('forum', 'banned_terms_info'),
+    'BANNED_TERMS_VALUE' => Output::getClean(Settings::get('banned_terms', '', 'forum')),
+    'INFO' => $language->get('general', 'info'),
     'PAGE' => PANEL_PAGE,
     'TOKEN' => Token::get(),
     'SUBMIT' => $language->get('general', 'submit')
